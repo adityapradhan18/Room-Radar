@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room Radar - Empty Campus Room Finder</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navigation / Brand Header -->
+  <header class="navbar">
+    <div class="container navbar-content">
+      <div class="brand">
+        <div class="radar-icon-wrapper">
+          <div class="radar-pulse"></div>
+          <svg class="radar-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10"></path>
+            <path d="M12 6a6 6 0 0 1 6 6"></path>
+            <path d="M12 12l4-2"></path>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Room Radar</h1>
+          <p class="brand-tagline">College Free Room &amp; Study Slot Finder</p>
+        </div>
+      </div>
+
+      <div class="server-status-pill" id="serverStatus" title="Status of Spring Boot API">
+        <span class="status-dot checking"></span>
+        <span class="status-label" id="statusLabel">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="container main-content">
+
+    <!-- Search & Control Panel Card -->
+    <section class="search-card" aria-label="Room Search Controls">
+      <form id="searchForm" class="search-form" onsubmit="return false;">
+        
+        <!-- Primary Row: Day and Time Selection -->
+        <div class="controls-grid">
+          
+          <!-- Day Dropdown -->
+          <div class="form-group">
+            <label for="daySelect" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Day of Week
+            </label>
+            <select id="daySelect" class="form-control" required>
+              <option value="MON" selected>Monday</option>
+              <option value="TUE">Tuesday</option>
+              <option value="WED">Wednesday</option>
+              <option value="THU">Thursday</option>
+              <option value="FRI">Friday</option>
+              <option value="SAT">Saturday</option>
+            </select>
+          </div>
+
+          <!-- Start Time Picker -->
+          <div class="form-group">
+            <label for="startTime" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Start Time
+            </label>
+            <input type="time" id="startTime" class="form-control" value="10:00" required>
+          </div>
+
+          <!-- End Time Picker -->
+          <div class="form-group">
+            <label for="endTime" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 8 14"></polyline>
+              </svg>
+              End Time
+            </label>
+            <input type="time" id="endTime" class="form-control" value="11:00" required>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="form-group button-group-primary">
+            <button type="button" id="btnFindRooms" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              Find Free Rooms
+            </button>
+            <button type="button" id="btnFreeNow" class="btn btn-secondary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Free Right Now
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Filters Accordion / Section -->
+        <div class="filters-container">
+          <div class="filters-header">
+            <button type="button" id="toggleFiltersBtn" class="filters-toggle-btn" aria-expanded="true">
+              <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <span>Filters (Building, Type, Capacity)</span>
+              <span class="filter-count-badge hidden" id="activeFilterBadge">0 active</span>
+              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <button type="button" id="btnResetFilters" class="btn-link">Clear Filters</button>
+          </div>
+
+          <div id="filtersBody" class="filters-grid">
+            <!-- Building Filter -->
+            <div class="form-group">
+              <label for="filterBuilding" class="form-label-sm">Building</label>
+              <select id="filterBuilding" class="form-control form-control-sm">
+                <option value="">All Buildings</option>
+                <option value="Main Block">Main Block</option>
+                <option value="Science Block">Science Block</option>
+                <option value="Tech Block">Tech Block</option>
+              </select>
+            </div>
+
+            <!-- Room Type Filter -->
+            <div class="form-group">
+              <label for="filterType" class="form-label-sm">Room Type</label>
+              <select id="filterType" class="form-control form-control-sm">
+                <option value="">All Room Types</option>
+                <option value="CLASSROOM">Classroom</option>
+                <option value="LAB">Laboratory</option>
+                <option value="SEMINAR_HALL">Seminar Hall</option>
+              </select>
+            </div>
+
+            <!-- Floor Filter -->
+            <div class="form-group">
+              <label for="filterFloor" class="form-label-sm">Floor</label>
+              <select id="filterFloor" class="form-control form-control-sm">
+                <option value="">All Floors</option>
+                <option value="1">Floor 1</option>
+                <option value="2">Floor 2</option>
+              </select>
+            </div>
+
+            <!-- Min Capacity Filter -->
+            <div class="form-group">
+              <label for="filterCapacity" class="form-label-sm">Min Capacity</label>
+              <input type="number" id="filterCapacity" class="form-control form-control-sm" placeholder="e.g. 50" min="1" max="500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Slot Chips (Periods P1-P8) -->
+        <div class="quick-periods">
+          <span class="quick-periods-label">Quick Slots:</span>
+          <div class="period-chips">
+            <button type="button" class="period-chip" data-start="09:00" data-end="10:00">P1 09-10</button>
+            <button type="button" class="period-chip active-chip" data-start="10:00" data-end="11:00">P2 10-11</button>
+            <button type="button" class="period-chip" data-start="11:00" data-end="12:00">P3 11-12</button>
+            <button type="button" class="period-chip" data-start="12:00" data-end="13:00">P4 12-01 (Lunch)</button>
+            <button type="button" class="period-chip" data-start="13:00" data-end="14:00">P5 01-02</button>
+            <button type="button" class="period-chip" data-start="14:00" data-end="15:00">P6 02-03</button>
+            <button type="button" class="period-chip" data-start="15:00" data-end="16:00">P7 03-04</button>
+            <button type="button" class="period-chip" data-start="16:00" data-end="17:00">P8 04-05</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Error Alert Notification Banner -->
+    <div id="alertBanner" class="alert-banner hidden" role="alert">
+      <div class="alert-icon-wrapper">
+        <svg class="alert-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="alert-content">
+        <strong id="alertTitle" class="alert-title">Attention</strong>
+        <p id="alertMessage" class="alert-message"></p>
+      </div>
+      <button type="button" id="alertCloseBtn" class="alert-close-btn" aria-label="Close alert">&times;</button>
+    </div>
+
+    <!-- Results Section -->
+    <section class="results-section" aria-label="Available Rooms Results">
+      
+      <!-- Results Toolbar Header -->
+      <div class="results-toolbar">
+        <div class="results-meta">
+          <h2 class="results-heading">Available Rooms</h2>
+          <span id="resultsSubtext" class="results-subtext">Scanning schedule...</span>
+        </div>
+        
+        <div class="results-tools">
+          <label for="sortSelect" class="sort-label">Sort by:</label>
+          <select id="sortSelect" class="sort-select">
+            <option value="roomNumber">Room Number</option>
+            <option value="capacityDesc">Capacity (High to Low)</option>
+            <option value="capacityAsc">Capacity (Low to High)</option>
+            <option value="freeUntil">Free Until Time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading State Overlay / Skeleton -->
+      <div id="loadingState" class="loading-state hidden">
+        <div class="radar-scan-anim">
+          <div class="scan-ring ring-1"></div>
+          <div class="scan-ring ring-2"></div>
+          <div class="scan-ring ring-3"></div>
+          <div class="scan-line"></div>
+        </div>
+        <p class="loading-text">Scanning timetable for empty rooms...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state hidden">
+        <div class="empty-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+        <h3 class="empty-title">No Empty Rooms Found</h3>
+        <p class="empty-desc">All rooms matching your criteria have classes scheduled during this time window. Try extending the slot or clearing active filters.</p>
+        <button type="button" id="emptyClearBtn" class="btn btn-outline">Clear Filters &amp; Try Again</button>
+      </div>
+
+      <!-- Free Rooms Cards Container Grid -->
+      <div id="roomsGrid" class="rooms-grid">
+        <!-- Room cards will be dynamically rendered here -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Room Schedule Modal (Accessible HTML5 Dialog) -->
+  <dialog id="scheduleModal" class="schedule-dialog" aria-labelledby="modalTitle">
+    <div class="modal-dialog-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-badges">
+            <span id="modalTypeBadge" class="badge-type">CLASSROOM</span>
+            <span id="modalCapacityBadge" class="badge-subtle">60 seats</span>
+          </div>
+          <h2 id="modalTitle" class="modal-title">Room A101 Schedule</h2>
+          <p id="modalSubtitle" class="modal-subtitle">Main Block • Floor 1 • Monday Timetable</p>
+        </div>
+        <button type="button" id="modalCloseBtn" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Visual Day Timeline Bar -->
+      <div class="modal-timeline-section">
+        <div class="timeline-legend">
+          <span class="legend-item"><span class="legend-dot busy"></span> Busy / Class</span>
+          <span class="legend-item"><span class="legend-dot free"></span> Free Slot</span>
+          <span class="legend-item"><span class="legend-dot requested"></span> Selected Window</span>
+        </div>
+        <div class="timeline-track" id="timelineTrack" title="Daily timeline 09:00 - 17:00">
+          <!-- Timeline segments rendered dynamically -->
+        </div>
+        <div class="timeline-labels">
+          <span>09:00</span>
+          <span>11:00</span>
+          <span>13:00</span>
+          <span>15:00</span>
+          <span>17:00</span>
+        </div>
+      </div>
+
+      <!-- Schedule Entries List -->
+      <div class="modal-body">
+        <h4 class="schedule-list-heading">Scheduled Classes for the Day</h4>
+        <div id="scheduleEntriesContainer" class="schedule-entries-list">
+          <!-- Timetable rows rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <span class="modal-tip">💡 Click any room card on the main dashboard to view its schedule.</span>
+        <button type="button" id="modalCloseActionBtn" class="btn btn-secondary">Close Schedule</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <p class="footer-text">
+        <strong>Room Radar</strong> &bull; College Free Room &amp; Study Slot Finder
+      </p>
+      <p class="footer-subtext">
+        Powered by Spring Boot 3 REST API &amp; PostgreSQL &bull; Overlap Logic: <code>entry.start &lt; req.end &amp;&amp; entry.end &gt; req.start</code>
+      </p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

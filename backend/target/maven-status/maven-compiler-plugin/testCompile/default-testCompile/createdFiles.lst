@@ -1,0 +1,4 @@
+com\roomradar\service\RoomServiceTest$OverlapLogicTests.class
+com\roomradar\service\RoomServiceTest$ServiceExecutionTests.class
+com\roomradar\service\RoomServiceTest.class
+com\roomradar\service\RoomServiceTest$FreeUntilTests.class
